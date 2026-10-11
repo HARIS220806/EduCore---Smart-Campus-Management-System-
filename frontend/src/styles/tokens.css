@@ -1,0 +1,92 @@
+/* ===========================================================
+   Smart Campus — Design Tokens
+   Palette: deep academic indigo + brass/gold accent
+   Type: Fraunces (display/serif) + Inter (UI/body)
+   =========================================================== */
+
+:root {
+  /* --- Brand palette --- */
+  --color-primary-950: #131A3D;
+  --color-primary-900: #1B2452;
+  --color-primary-800: #232C5C;
+  --color-primary-700: #2E3A72;
+  --color-primary-600: #3C4B8F;
+  --color-primary-500: #5063B0;
+  --color-primary-100: #E7E9F5;
+  --color-primary-50:  #F3F4FA;
+
+  --color-accent-700: #9C6423;
+  --color-accent-600: #B4762C;
+  --color-accent-500: #C98A3E;
+  --color-accent-400: #DBA35F;
+  --color-accent-100: #F6E7D2;
+  --color-accent-50:  #FBF3E7;
+
+  --color-success-600: #2F8F5B;
+  --color-success-100: #DEF3E7;
+  --color-warning-600: #B67B1E;
+  --color-warning-100: #FBEBD1;
+  --color-danger-600:  #C34B3F;
+  --color-danger-100:  #FBE3E0;
+  --color-info-600:    #3C6FA8;
+  --color-info-100:    #E1EBF6;
+
+  /* --- Surface / text (light mode) --- */
+  --bg-canvas: #F7F6F3;
+  --bg-surface: #FFFFFF;
+  --bg-surface-raised: #FFFFFF;
+  --bg-sidebar: #1B2452;
+  --bg-subtle: #EFEEE9;
+  --border-default: #E4E2DB;
+  --border-strong: #D2CFC4;
+
+  --text-primary: #1B2452;
+  --text-secondary: #5B5F73;
+  --text-muted: #8A8D9C;
+  --text-on-primary: #F7F6F3;
+  --text-on-accent: #1B2452;
+
+  --shadow-card: 0 1px 2px rgba(27, 36, 82, 0.06), 0 4px 16px rgba(27, 36, 82, 0.06);
+  --shadow-raised: 0 4px 12px rgba(27, 36, 82, 0.10), 0 12px 32px rgba(27, 36, 82, 0.08);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  --font-display: 'Fraunces', 'Georgia', serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  color-scheme: light;
+}
+
+.dark {
+  --bg-canvas: #11142B;
+  --bg-surface: #171B38;
+  --bg-surface-raised: #1D2142;
+  --bg-sidebar: #0E1130;
+  --bg-subtle: #1D2142;
+  --border-default: #2A2E52;
+  --border-strong: #383C66;
+
+  --text-primary: #F1F1F6;
+  --text-secondary: #B7BACB;
+  --text-muted: #7C80A0;
+  --text-on-primary: #F1F1F6;
+  --text-on-accent: #1B2452;
+
+  --color-primary-100: #232B54;
+  --color-primary-50:  #1D2246;
+
+  --color-accent-100: #3A2C18;
+  --color-accent-50:  #2C2213;
+
+  --color-success-100: #17301F;
+  --color-warning-100: #332510;
+  --color-danger-100: #331A17;
+  --color-info-100: #17233A;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+  --shadow-raised: 0 4px 12px rgba(0, 0, 0, 0.35), 0 12px 32px rgba(0, 0, 0, 0.3);
+
+  color-scheme: dark;
+}
