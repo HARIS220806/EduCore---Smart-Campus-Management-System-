@@ -10,6 +10,7 @@ const withDept = (u) => ({ ...publicUser(u), departmentName: db.departments.byId
 
 // Admin: everyone. Faculty: only students in classes they teach.
 router.get('/', authorize('admin', 'faculty'), wrap(async (req, res) => {
+  await db.syncFromMongo();
   const { role, departmentId, q } = req.query;
   let list = db.users.all();
   if (req.user.role === 'faculty') {
@@ -78,13 +79,24 @@ router.delete('/:id', authorize('admin'), wrap(async (req, res) => {
   const user = db.users.byId(req.params.id);
   if (!user) throw httpError(404, 'User not found');
   if (user.id === req.user.id) throw httpError(400, 'You cannot delete your own account');
-  if (user.role === 'faculty' && db.courses.findOne((c) => c.facultyId === user.id))
-    throw httpError(409, 'Reassign this faculty member\'s courses before deleting');
+  if (user.role === 'faculty') {
+    db.courses.find((c) => c.facultyId === user.id).forEach((c) => {
+      db.courses.update(c.id, { facultyId: null });
+    });
+    db.departments.find((d) => d.hodId === user.id).forEach((d) => {
+      db.departments.update(d.id, { hodId: null });
+    });
+  }
   db.users.remove(user.id);
   db.notifications.removeWhere((n) => n.userId === user.id);
   db.submissions.removeWhere((s) => s.studentId === user.id);
   db.marks.removeWhere((m) => m.studentId === user.id);
-  db.attendance.all().forEach((a) => { a.records = a.records.filter((r) => r.studentId !== user.id); });
+  db.attendance.all().forEach((a) => {
+    const updated = (a.records || []).filter((r) => r.studentId !== user.id);
+    if (updated.length !== (a.records || []).length) {
+      db.attendance.update(a.id, { records: updated });
+    }
+  });
   res.json({ message: 'User deleted' });
 }));
 

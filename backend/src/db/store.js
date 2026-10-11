@@ -27,7 +27,6 @@ const MODEL_MAP = {
 };
 
 let data = {};
-let timer = null;
 
 function empty() {
   const d = { settings: { institutionName: 'Smart Campus College', academicYear: '2026-27', minAttendance: 75 } };
@@ -88,7 +87,10 @@ async function syncFromMongo() {
       const { _id, __v, ...sRest } = settingDoc;
       data.settings = { ...data.settings, ...sRest };
     }
-    flush();
+    try {
+      fs.mkdirSync(path.dirname(config.dbFile), { recursive: true });
+      fs.writeFileSync(config.dbFile, JSON.stringify(data, null, 2));
+    } catch {}
     console.log('Successfully synced data from MongoDB!');
   } catch (err) {
     console.error('Error reading from MongoDB:', err.message);
@@ -96,8 +98,7 @@ async function syncFromMongo() {
 }
 
 function persist() {
-  clearTimeout(timer);
-  timer = setTimeout(flush, 100);
+  flush();
 }
 
 const uid = () => crypto.randomBytes(8).toString('hex');
@@ -111,6 +112,9 @@ function col(name) {
     insert(doc) {
       const row = { id: uid(), createdAt: new Date().toISOString(), ...doc };
       data[name].push(row);
+      if (mongoose.connection && mongoose.connection.readyState === 1 && MODEL_MAP[name]) {
+        MODEL_MAP[name].updateOne({ id: row.id }, row, { upsert: true }).catch((err) => console.error('MongoDB insert error:', err.message));
+      }
       persist();
       return row;
     },
@@ -118,6 +122,9 @@ function col(name) {
       const row = data[name].find((x) => x.id === id);
       if (!row) return null;
       Object.assign(row, patch, { updatedAt: new Date().toISOString() });
+      if (mongoose.connection && mongoose.connection.readyState === 1 && MODEL_MAP[name]) {
+        MODEL_MAP[name].updateOne({ id }, row, { upsert: true }).catch((err) => console.error('MongoDB update error:', err.message));
+      }
       persist();
       return row;
     },
@@ -125,7 +132,7 @@ function col(name) {
       const before = data[name].length;
       data[name] = data[name].filter((x) => x.id !== id);
       if (mongoose.connection && mongoose.connection.readyState === 1 && MODEL_MAP[name]) {
-        MODEL_MAP[name].deleteOne({ id }).catch(() => {});
+        MODEL_MAP[name].deleteOne({ id }).catch((err) => console.error('MongoDB delete error:', err.message));
       }
       persist();
       return data[name].length < before;
@@ -134,7 +141,7 @@ function col(name) {
       const toDelete = data[name].filter(pred).map((x) => x.id);
       data[name] = data[name].filter((x) => !pred(x));
       if (mongoose.connection && mongoose.connection.readyState === 1 && MODEL_MAP[name] && toDelete.length > 0) {
-        MODEL_MAP[name].deleteMany({ id: { $in: toDelete } }).catch(() => {});
+        MODEL_MAP[name].deleteMany({ id: { $in: toDelete } }).catch((err) => console.error('MongoDB deleteMany error:', err.message));
       }
       persist();
     },

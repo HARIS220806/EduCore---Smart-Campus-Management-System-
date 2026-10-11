@@ -8,6 +8,6 @@ module.exports = {
   clientOrigin: process.env.CLIENT_ORIGIN 
     ? process.env.CLIENT_ORIGIN.split(',').map(s => s.trim()) 
     : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'],
-  mongoUri: process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/smart-campus',
+  mongoUri: process.env.MONGO_URI || 'mongodb+srv://24104059_db_user:Haris1234@cluster0.lwnd4yg.mongodb.net/smart-campus?appName=Cluster0',
   dbFile: process.env.DB_FILE || (process.env.VERCEL ? path.join('/tmp', 'db.json') : path.join(__dirname, '..', 'data', 'db.json')),
 };
