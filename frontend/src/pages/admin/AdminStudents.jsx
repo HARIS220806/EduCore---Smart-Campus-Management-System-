@@ -101,19 +101,21 @@ export function AdminStudents() {
     try {
       setSubmitting(true);
       if (editingStudent) {
-        await userService.update(editingStudent.id, form);
+        const updated = await userService.update(editingStudent.id, form);
         toast.success('Student record updated successfully!');
+        setStudents((prev) => prev.map((s) => (s.id === editingStudent.id ? { ...s, ...updated } : s)));
       } else {
         if (!form.password) {
           toast.error('Password is required for new accounts');
           setSubmitting(false);
           return;
         }
-        await userService.create({ ...form, role: 'student' });
+        const created = await userService.create({ ...form, role: 'student' });
         toast.success('Student account created successfully!');
+        setStudents((prev) => [created, ...prev.filter((s) => s.id !== created.id)]);
       }
       setShowModal(false);
-      fetchData();
+      await fetchData();
     } catch (err) {
       toast.error(err?.message || 'Failed to save student');
     } finally {
@@ -124,11 +126,12 @@ export function AdminStudents() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this student account?')) return;
     try {
+      setStudents((prev) => prev.filter((s) => s.id !== id));
       await userService.remove(id);
       toast.success('Student account deleted');
-      setStudents((prev) => prev.filter((s) => s.id !== id));
     } catch (err) {
       toast.error(err?.message || 'Failed to delete student');
+      fetchData();
     }
   };
 

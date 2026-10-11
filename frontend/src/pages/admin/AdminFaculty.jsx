@@ -93,19 +93,21 @@ export function AdminFaculty() {
     try {
       setSubmitting(true);
       if (editingUser) {
-        await userService.update(editingUser.id, form);
+        const updated = await userService.update(editingUser.id, form);
         toast.success('Faculty updated successfully!');
+        setFaculty((prev) => prev.map((f) => (f.id === editingUser.id ? { ...f, ...updated } : f)));
       } else {
         if (!form.password) {
           toast.error('Password is required for new accounts');
           setSubmitting(false);
           return;
         }
-        await userService.create({ ...form, role: 'faculty' });
+        const created = await userService.create({ ...form, role: 'faculty' });
         toast.success('Faculty account created successfully!');
+        setFaculty((prev) => [created, ...prev.filter((f) => f.id !== created.id)]);
       }
       setShowModal(false);
-      fetchData();
+      await fetchData();
     } catch (err) {
       toast.error(err?.message || 'Failed to save faculty account');
     } finally {
@@ -116,11 +118,12 @@ export function AdminFaculty() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this faculty account?')) return;
     try {
+      setFaculty((prev) => prev.filter((f) => f.id !== id));
       await userService.remove(id);
       toast.success('Faculty account deleted');
-      setFaculty((prev) => prev.filter((f) => f.id !== id));
     } catch (err) {
       toast.error(err?.message || 'Failed to delete faculty member');
+      fetchData();
     }
   };
 

@@ -35,7 +35,7 @@ router.post('/', authorize('admin'), wrap(async (req, res) => {
   if (password.length < 6) throw httpError(400, 'Password must be at least 6 characters');
   if (db.users.findOne((u) => u.email === email.toLowerCase())) throw httpError(409, 'An account with this email already exists');
   if (departmentId && !db.departments.byId(departmentId)) throw httpError(400, 'Unknown department');
-  const user = db.users.insert({
+  const user = await db.users.insert({
     name: name.trim(), email: email.toLowerCase(), role, active: true,
     passwordHash: bcrypt.hashSync(password, 10),
     departmentId: departmentId || null, phone: phone || '',
@@ -72,7 +72,8 @@ router.put('/:id', authorize('admin'), wrap(async (req, res) => {
     if (req.body.password.length < 6) throw httpError(400, 'Password must be at least 6 characters');
     patch.passwordHash = bcrypt.hashSync(req.body.password, 10);
   }
-  res.json(withDept(db.users.update(user.id, patch)));
+  const updatedUser = await db.users.update(user.id, patch);
+  res.json(withDept(updatedUser));
 }));
 
 router.delete('/:id', authorize('admin'), wrap(async (req, res) => {
@@ -87,7 +88,7 @@ router.delete('/:id', authorize('admin'), wrap(async (req, res) => {
       db.departments.update(d.id, { hodId: null });
     });
   }
-  db.users.remove(user.id);
+  await db.users.remove(user.id);
   db.notifications.removeWhere((n) => n.userId === user.id);
   db.submissions.removeWhere((s) => s.studentId === user.id);
   db.marks.removeWhere((m) => m.studentId === user.id);
