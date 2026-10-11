@@ -60,14 +60,16 @@ export function AdminDepartments() {
     try {
       setSubmitting(true);
       if (editingDept) {
-        await departmentService.update(editingDept.id, form);
+        const updated = await departmentService.update(editingDept.id, form);
         toast.success('Department updated!');
+        setDepartments((prev) => prev.map((d) => (d.id === editingDept.id ? { ...d, ...updated } : d)));
       } else {
-        await departmentService.create(form);
+        const created = await departmentService.create(form);
         toast.success('Department created!');
+        setDepartments((prev) => [created, ...prev.filter((d) => d.id !== created.id)]);
       }
       setShowModal(false);
-      fetchDepartments();
+      await fetchDepartments();
     } catch (err) {
       toast.error(err?.message || 'Failed to save department');
     } finally {
@@ -78,11 +80,12 @@ export function AdminDepartments() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this department?')) return;
     try {
+      setDepartments((prev) => prev.filter((d) => d.id !== id));
       await departmentService.remove(id);
       toast.success('Department deleted');
-      setDepartments((prev) => prev.filter((d) => d.id !== id));
     } catch (err) {
       toast.error(err?.message || 'Failed to delete department');
+      fetchDepartments();
     }
   };
 

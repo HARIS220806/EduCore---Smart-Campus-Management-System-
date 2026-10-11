@@ -98,14 +98,16 @@ export function AdminCourses() {
     try {
       setSubmitting(true);
       if (editingCourse) {
-        await courseService.update(editingCourse.id, form);
+        const updated = await courseService.update(editingCourse.id, form);
         toast.success('Course updated!');
+        setCourses((prev) => prev.map((c) => (c.id === editingCourse.id ? { ...c, ...updated } : c)));
       } else {
-        await courseService.create(form);
+        const created = await courseService.create(form);
         toast.success('Course created!');
+        setCourses((prev) => [created, ...prev.filter((c) => c.id !== created.id)]);
       }
       setShowModal(false);
-      fetchData();
+      await fetchData();
     } catch (err) {
       toast.error(err?.message || 'Failed to save course');
     } finally {
@@ -116,11 +118,12 @@ export function AdminCourses() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this course?')) return;
     try {
+      setCourses((prev) => prev.filter((c) => c.id !== id));
       await courseService.remove(id);
       toast.success('Course deleted');
-      setCourses((prev) => prev.filter((c) => c.id !== id));
     } catch (err) {
       toast.error(err?.message || 'Failed to delete course');
+      fetchData();
     }
   };
 

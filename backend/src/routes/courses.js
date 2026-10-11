@@ -42,25 +42,27 @@ const validate = (b, existingId) => {
 };
 
 router.post('/', authorize('admin'), wrap(async (req, res) => {
-  res.status(201).json(decorate(db.courses.insert(validate(req.body))));
+  const row = await db.courses.insert(validate(req.body));
+  res.status(201).json(decorate(row));
 }));
 
 router.put('/:id', authorize('admin'), wrap(async (req, res) => {
   const c = db.courses.byId(req.params.id);
   if (!c) throw httpError(404, 'Course not found');
-  res.json(decorate(db.courses.update(c.id, validate({ ...c, ...req.body }, c.id))));
+  const row = await db.courses.update(c.id, validate({ ...c, ...req.body }, c.id));
+  res.json(decorate(row));
 }));
 
 router.delete('/:id', authorize('admin'), wrap(async (req, res) => {
   const c = db.courses.byId(req.params.id);
   if (!c) throw httpError(404, 'Course not found');
   const assignmentIds = db.assignments.find((a) => a.courseId === c.id).map((a) => a.id);
-  db.submissions.removeWhere((s) => assignmentIds.includes(s.assignmentId));
-  db.assignments.removeWhere((a) => a.courseId === c.id);
-  db.attendance.removeWhere((a) => a.courseId === c.id);
-  db.marks.removeWhere((m) => m.courseId === c.id);
-  db.timetable.removeWhere((t) => t.courseId === c.id);
-  db.courses.remove(c.id);
+  await db.submissions.removeWhere((s) => assignmentIds.includes(s.assignmentId));
+  await db.assignments.removeWhere((a) => a.courseId === c.id);
+  await db.attendance.removeWhere((a) => a.courseId === c.id);
+  await db.marks.removeWhere((m) => m.courseId === c.id);
+  await db.timetable.removeWhere((t) => t.courseId === c.id);
+  await db.courses.remove(c.id);
   res.json({ message: 'Course deleted' });
 }));
 

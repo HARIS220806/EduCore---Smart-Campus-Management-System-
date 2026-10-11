@@ -19,7 +19,8 @@ router.post('/', authorize('admin'), wrap(async (req, res) => {
   need(req.body, ['name', 'code']);
   const code = req.body.code.trim().toUpperCase();
   if (db.departments.findOne((d) => d.code === code)) throw httpError(409, 'Department code already exists');
-  res.status(201).json(decorate(db.departments.insert({ name: req.body.name.trim(), code, hodId: req.body.hodId || null })));
+  const row = await db.departments.insert({ name: req.body.name.trim(), code, hodId: req.body.hodId || null });
+  res.status(201).json(decorate(row));
 }));
 
 router.put('/:id', authorize('admin'), wrap(async (req, res) => {
@@ -33,7 +34,8 @@ router.put('/:id', authorize('admin'), wrap(async (req, res) => {
     if (db.departments.findOne((x) => x.code === code && x.id !== d.id)) throw httpError(409, 'Department code already exists');
     patch.code = code;
   }
-  res.json(decorate(db.departments.update(d.id, patch)));
+  const row = await db.departments.update(d.id, patch);
+  res.json(decorate(row));
 }));
 
 router.delete('/:id', authorize('admin'), wrap(async (req, res) => {
@@ -41,7 +43,7 @@ router.delete('/:id', authorize('admin'), wrap(async (req, res) => {
   if (!d) throw httpError(404, 'Department not found');
   if (db.users.findOne((u) => u.departmentId === d.id) || db.courses.findOne((c) => c.departmentId === d.id))
     throw httpError(409, 'Move or delete this department\'s users and courses first');
-  db.departments.remove(d.id);
+  await db.departments.remove(d.id);
   res.json({ message: 'Department deleted' });
 }));
 

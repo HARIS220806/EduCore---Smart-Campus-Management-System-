@@ -90,19 +90,21 @@ export function AdminUsers() {
     try {
       setSubmitting(true);
       if (editingUser) {
-        await userService.update(editingUser.id, form);
+        const updated = await userService.update(editingUser.id, form);
         toast.success('User account updated!');
+        setUsers((prev) => prev.map((u) => (u.id === editingUser.id ? { ...u, ...updated } : u)));
       } else {
         if (!form.password) {
           toast.error('Password is required for new accounts');
           setSubmitting(false);
           return;
         }
-        await userService.create(form);
+        const created = await userService.create(form);
         toast.success('User account created!');
+        setUsers((prev) => [created, ...prev.filter((u) => u.id !== created.id)]);
       }
       setShowModal(false);
-      fetchData();
+      await fetchData();
     } catch (err) {
       toast.error(err?.message || 'Failed to save user account');
     } finally {
@@ -113,11 +115,12 @@ export function AdminUsers() {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this user account?')) return;
     try {
+      setUsers((prev) => prev.filter((u) => u.id !== id));
       await userService.remove(id);
       toast.success('User account deleted');
-      setUsers((prev) => prev.filter((u) => u.id !== id));
     } catch (err) {
       toast.error(err?.message || 'Failed to delete user');
+      fetchData();
     }
   };
 

@@ -49,11 +49,6 @@ function flush() {
   } catch (err) {
     console.warn('File store notice (serverless/read-only filesystem):', err.message);
   }
-
-  // If MongoDB is connected, push state to MongoDB
-  if (mongoose.connection && mongoose.connection.readyState === 1) {
-    syncToMongo().catch((err) => console.error('MongoDB sync error:', err.message));
-  }
 }
 
 async function syncToMongo() {
@@ -77,9 +72,7 @@ async function syncFromMongo() {
       const Model = MODEL_MAP[name];
       if (Model) {
         const docs = await Model.find({}).lean();
-        if (docs.length > 0) {
-          data[name] = docs.map(({ _id, __v, ...rest }) => rest);
-        }
+        data[name] = (docs || []).map(({ _id, __v, ...rest }) => rest);
       }
     }
     const settingDoc = await models.Setting.findOne({}).lean();
@@ -109,41 +102,57 @@ function col(name) {
     find: (pred) => data[name].filter(pred),
     findOne: (pred) => data[name].find(pred),
     byId: (id) => data[name].find((x) => x.id === id),
-    insert(doc) {
+    async insert(doc) {
       const row = { id: uid(), createdAt: new Date().toISOString(), ...doc };
       data[name].push(row);
-      if (mongoose.connection && mongoose.connection.readyState === 1 && MODEL_MAP[name]) {
-        MODEL_MAP[name].updateOne({ id: row.id }, row, { upsert: true }).catch((err) => console.error('MongoDB insert error:', err.message));
-      }
       persist();
+      if (mongoose.connection && mongoose.connection.readyState === 1 && MODEL_MAP[name]) {
+        try {
+          await MODEL_MAP[name].updateOne({ id: row.id }, row, { upsert: true });
+        } catch (err) {
+          console.error('MongoDB insert error:', err.message);
+        }
+      }
       return row;
     },
-    update(id, patch) {
+    async update(id, patch) {
       const row = data[name].find((x) => x.id === id);
       if (!row) return null;
       Object.assign(row, patch, { updatedAt: new Date().toISOString() });
-      if (mongoose.connection && mongoose.connection.readyState === 1 && MODEL_MAP[name]) {
-        MODEL_MAP[name].updateOne({ id }, row, { upsert: true }).catch((err) => console.error('MongoDB update error:', err.message));
-      }
       persist();
+      if (mongoose.connection && mongoose.connection.readyState === 1 && MODEL_MAP[name]) {
+        try {
+          await MODEL_MAP[name].updateOne({ id }, row, { upsert: true });
+        } catch (err) {
+          console.error('MongoDB update error:', err.message);
+        }
+      }
       return row;
     },
-    remove(id) {
+    async remove(id) {
       const before = data[name].length;
       data[name] = data[name].filter((x) => x.id !== id);
-      if (mongoose.connection && mongoose.connection.readyState === 1 && MODEL_MAP[name]) {
-        MODEL_MAP[name].deleteOne({ id }).catch((err) => console.error('MongoDB delete error:', err.message));
-      }
       persist();
+      if (mongoose.connection && mongoose.connection.readyState === 1 && MODEL_MAP[name]) {
+        try {
+          await MODEL_MAP[name].deleteOne({ id });
+        } catch (err) {
+          console.error('MongoDB delete error:', err.message);
+        }
+      }
       return data[name].length < before;
     },
-    removeWhere(pred) {
+    async removeWhere(pred) {
       const toDelete = data[name].filter(pred).map((x) => x.id);
       data[name] = data[name].filter((x) => !pred(x));
-      if (mongoose.connection && mongoose.connection.readyState === 1 && MODEL_MAP[name] && toDelete.length > 0) {
-        MODEL_MAP[name].deleteMany({ id: { $in: toDelete } }).catch((err) => console.error('MongoDB deleteMany error:', err.message));
-      }
       persist();
+      if (mongoose.connection && mongoose.connection.readyState === 1 && MODEL_MAP[name] && toDelete.length > 0) {
+        try {
+          await MODEL_MAP[name].deleteMany({ id: { $in: toDelete } });
+        } catch (err) {
+          console.error('MongoDB deleteMany error:', err.message);
+        }
+      }
     },
   };
 }

@@ -224,9 +224,29 @@ async function seedData() {
 }
 
 async function seedIfEmpty() {
+  const models = require('../models/schemas');
+  const mongoose = require('mongoose');
+
+  // If MongoDB Atlas already has users, NEVER re-seed!
+  if (mongoose.connection && mongoose.connection.readyState === 1) {
+    try {
+      const userCount = await models.User.countDocuments();
+      if (userCount > 0) {
+        return;
+      }
+    } catch {}
+  }
+
+  const settings = db.getSettings();
+  if (settings && settings.seeded) {
+    return;
+  }
+
   if (db.users.all().length === 0) {
-    console.log('Database is empty. Auto-seeding initial demo data...');
-    return await seedData();
+    console.log('First-time setup: Seeding initial demo data...');
+    const result = await seedData();
+    db.setSettings({ seeded: true });
+    return result;
   }
 }
 

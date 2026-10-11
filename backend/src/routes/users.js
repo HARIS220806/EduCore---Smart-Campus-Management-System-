@@ -81,23 +81,23 @@ router.delete('/:id', authorize('admin'), wrap(async (req, res) => {
   if (!user) throw httpError(404, 'User not found');
   if (user.id === req.user.id) throw httpError(400, 'You cannot delete your own account');
   if (user.role === 'faculty') {
-    db.courses.find((c) => c.facultyId === user.id).forEach((c) => {
-      db.courses.update(c.id, { facultyId: null });
-    });
-    db.departments.find((d) => d.hodId === user.id).forEach((d) => {
-      db.departments.update(d.id, { hodId: null });
-    });
+    for (const c of db.courses.find((c) => c.facultyId === user.id)) {
+      await db.courses.update(c.id, { facultyId: null });
+    }
+    for (const d of db.departments.find((d) => d.hodId === user.id)) {
+      await db.departments.update(d.id, { hodId: null });
+    }
   }
   await db.users.remove(user.id);
-  db.notifications.removeWhere((n) => n.userId === user.id);
-  db.submissions.removeWhere((s) => s.studentId === user.id);
-  db.marks.removeWhere((m) => m.studentId === user.id);
-  db.attendance.all().forEach((a) => {
+  await db.notifications.removeWhere((n) => n.userId === user.id);
+  await db.submissions.removeWhere((s) => s.studentId === user.id);
+  await db.marks.removeWhere((m) => m.studentId === user.id);
+  for (const a of db.attendance.all()) {
     const updated = (a.records || []).filter((r) => r.studentId !== user.id);
     if (updated.length !== (a.records || []).length) {
-      db.attendance.update(a.id, { records: updated });
+      await db.attendance.update(a.id, { records: updated });
     }
-  });
+  }
   res.json({ message: 'User deleted' });
 }));
 
