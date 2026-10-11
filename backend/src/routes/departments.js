@@ -13,9 +13,13 @@ const decorate = (d) => ({
   courseCount: db.courses.find((c) => c.departmentId === d.id).length,
 });
 
-router.get('/', (req, res) => res.json(db.departments.all().map(decorate)));
+router.get('/', wrap(async (req, res) => {
+  await db.departments.sync();
+  res.json(db.departments.all().map(decorate));
+}));
 
 router.post('/', authorize('admin'), wrap(async (req, res) => {
+  await db.departments.sync();
   need(req.body, ['name', 'code']);
   const code = req.body.code.trim().toUpperCase();
   if (db.departments.findOne((d) => d.code === code)) throw httpError(409, 'Department code already exists');

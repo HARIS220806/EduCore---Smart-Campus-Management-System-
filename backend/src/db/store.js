@@ -65,26 +65,24 @@ async function syncToMongo() {
   }
 }
 
-async function syncFromMongo() {
+async function syncFromMongo(colName) {
   if (!mongoose.connection || mongoose.connection.readyState !== 1) return;
   try {
-    for (const name of COLLECTIONS) {
+    const list = colName ? [colName] : COLLECTIONS;
+    for (const name of list) {
       const Model = MODEL_MAP[name];
       if (Model) {
         const docs = await Model.find({}).lean();
         data[name] = (docs || []).map(({ _id, __v, ...rest }) => rest);
       }
     }
-    const settingDoc = await models.Setting.findOne({}).lean();
-    if (settingDoc) {
-      const { _id, __v, ...sRest } = settingDoc;
-      data.settings = { ...data.settings, ...sRest };
+    if (!colName) {
+      const settingDoc = await models.Setting.findOne({}).lean();
+      if (settingDoc) {
+        const { _id, __v, ...sRest } = settingDoc;
+        data.settings = { ...data.settings, ...sRest };
+      }
     }
-    try {
-      fs.mkdirSync(path.dirname(config.dbFile), { recursive: true });
-      fs.writeFileSync(config.dbFile, JSON.stringify(data, null, 2));
-    } catch {}
-    console.log('Successfully synced data from MongoDB!');
   } catch (err) {
     console.error('Error reading from MongoDB:', err.message);
   }
@@ -98,6 +96,10 @@ const uid = () => crypto.randomBytes(8).toString('hex');
 
 function col(name) {
   return {
+    async sync() {
+      await syncFromMongo(name);
+      return data[name];
+    },
     all: () => data[name],
     find: (pred) => data[name].filter(pred),
     findOne: (pred) => data[name].find(pred),

@@ -14,13 +14,14 @@ const decorate = (c) => ({
 });
 
 // Role-scoped list: admin = all, faculty = own, student = enrolled
-router.get('/', (req, res) => {
+router.get('/', wrap(async (req, res) => {
+  await db.courses.sync();
   let list = db.courses.all();
   if (req.user.role === 'faculty') list = list.filter((c) => c.facultyId === req.user.id);
   if (req.user.role === 'student') list = coursesOfStudent(req.user);
   if (req.query.departmentId) list = list.filter((c) => c.departmentId === req.query.departmentId);
   res.json(list.map(decorate));
-});
+}));
 
 router.get('/:id/students', wrap(async (req, res) => {
   const c = db.courses.byId(req.params.id);
@@ -42,6 +43,7 @@ const validate = (b, existingId) => {
 };
 
 router.post('/', authorize('admin'), wrap(async (req, res) => {
+  await db.courses.sync();
   const row = await db.courses.insert(validate(req.body));
   res.status(201).json(decorate(row));
 }));

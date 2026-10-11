@@ -39,24 +39,28 @@ export function AdminCourses() {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const [cData, dData, fData] = await Promise.all([
         courseService.list(),
         departmentService.list(),
         userService.list({ role: 'faculty' }),
       ]);
-      setCourses(cData);
+      setCourses((prev) => {
+        const serverIds = new Set(cData.map((c) => c.id));
+        const pendingNew = prev.filter((p) => !serverIds.has(p.id));
+        return [...pendingNew, ...cData];
+      });
       setDepartments(dData);
       setFaculty(fData);
-      if (dData.length > 0) {
+      if (dData.length > 0 && !form.departmentId) {
         setForm((prev) => ({ ...prev, departmentId: dData[0].id }));
       }
     } catch (err) {
       toast.error(err?.message || 'Failed to load courses data');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -107,7 +111,7 @@ export function AdminCourses() {
         setCourses((prev) => [created, ...prev.filter((c) => c.id !== created.id)]);
       }
       setShowModal(false);
-      await fetchData();
+      await fetchData(true);
     } catch (err) {
       toast.error(err?.message || 'Failed to save course');
     } finally {
