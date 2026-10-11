@@ -14,7 +14,9 @@ const decorate = (t) => ({
   facultyName: db.users.byId(db.courses.byId(t.courseId)?.facultyId)?.name || null,
 });
 
-router.get('/', (req, res) => {
+router.get('/', wrap(async (req, res) => {
+  await db.timetable.sync();
+  await db.courses.sync();
   let list = db.timetable.all();
   if (req.user.role === 'faculty') {
     const myCourseIds = new Set(db.courses.find((c) => c.facultyId === req.user.id).map((c) => c.id));
@@ -29,18 +31,24 @@ router.get('/', (req, res) => {
     list = list.filter((t) => courseIds.has(t.courseId));
   }
   res.json(list.map(decorate).sort((a, b) => DAYS.indexOf(a.day) - DAYS.indexOf(b.day) || a.startTime.localeCompare(b.startTime)));
-});
+}));
 
 router.post('/', authorize('admin'), wrap(async (req, res) => {
+  await db.timetable.sync();
+  await db.courses.sync();
   const { courseId, day, startTime, endTime, room } = req.body;
   need(req.body, ['courseId', 'day', 'startTime', 'endTime']);
   if (!DAYS.includes(day)) throw httpError(400, `day must be one of: ${DAYS.join(', ')}`);
   if (!db.courses.byId(courseId)) throw httpError(404, 'Course not found');
-  res.status(201).json(decorate(db.timetable.insert({ courseId, dayOfWeek: day, startTime, endTime, room: room || '' })));
+  const row = await db.timetable.insert({ courseId, dayOfWeek: day, startTime, endTime, room: room || '' });
+  res.status(201).json(decorate(row));
 }));
 
 router.delete('/:id', authorize('admin'), wrap(async (req, res) => {
-  if (!db.timetable.remove(req.params.id)) throw httpError(404, 'Timetable entry not found');
+  await db.timetable.sync();
+  const existing = db.timetable.byId(req.params.id);
+  if (!existing) throw httpError(404, 'Timetable entry not found');
+  await db.timetable.remove(req.params.id);
   res.json({ message: 'Timetable entry deleted' });
 }));
 
