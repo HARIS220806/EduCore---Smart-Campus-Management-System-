@@ -80,7 +80,49 @@ export function Login() {
         Sign in to continue to your campus dashboard.
       </p>
 
-      <form onSubmit={handleSubmit} noValidate className="mt-8 flex flex-col gap-4">
+      {/* Quick Demo Logins */}
+      <div className="mt-5 p-3 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-default)]">
+        <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">
+          ⚡ Quick Demo Accounts
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setEmail('admin@educore.edu');
+              setPassword('admin123');
+              setErrors({});
+            }}
+            className="text-xs py-1.5 px-2 rounded-lg font-medium bg-[var(--bg-default)] hover:bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:hover:bg-[var(--color-primary-950)] border border-[var(--border-default)] transition-all cursor-pointer shadow-xs text-center"
+          >
+            👑 Admin
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setEmail('faculty@educore.edu');
+              setPassword('faculty123');
+              setErrors({});
+            }}
+            className="text-xs py-1.5 px-2 rounded-lg font-medium bg-[var(--bg-default)] hover:bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:hover:bg-[var(--color-primary-950)] border border-[var(--border-default)] transition-all cursor-pointer shadow-xs text-center"
+          >
+            👨‍🏫 Faculty
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setEmail('student@educore.edu');
+              setPassword('student123');
+              setErrors({});
+            }}
+            className="text-xs py-1.5 px-2 rounded-lg font-medium bg-[var(--bg-default)] hover:bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:hover:bg-[var(--color-primary-950)] border border-[var(--border-default)] transition-all cursor-pointer shadow-xs text-center"
+          >
+            🎓 Student
+          </button>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} noValidate className="mt-6 flex flex-col gap-4">
         <Input
           label="Email / Register Number"
           type="email"
