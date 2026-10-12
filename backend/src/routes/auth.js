@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const db = require('../db/store');
 const { OAuth2Client } = require('google-auth-library');
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || 'dummy-client-id');
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || '633552899098-8hr55pdddvir5002n0iulk13h3v9ps62.apps.googleusercontent.com');
 const { sign, authenticate } = require('../middleware/auth');
 const { publicUser, wrap, httpError, need, isEmail } = require('../utils/helpers');
 
@@ -41,7 +41,7 @@ router.post('/google', wrap(async (req, res) => {
   try {
     const ticket = await googleClient.verifyIdToken({
       idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID || 'dummy-client-id',
+      audience: process.env.GOOGLE_CLIENT_ID || '633552899098-8hr55pdddvir5002n0iulk13h3v9ps62.apps.googleusercontent.com',
     });
     payload = ticket.getPayload();
   } catch (err) {
