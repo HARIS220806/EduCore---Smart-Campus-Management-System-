@@ -7,7 +7,7 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || '633552899
 const { sign, authenticate } = require('../middleware/auth');
 const { publicUser, wrap, httpError, need, isEmail } = require('../utils/helpers');
 
-const session = (user) => ({ user: publicUser(user), role: user.role, accessToken: sign(user) });
+const session = (user) => ({ user: publicUser(user), role: user.role || 'student', accessToken: sign(user) });
 
 // Public self-registration always creates a STUDENT. Staff accounts are created by an admin via /api/users.
 router.post('/register', wrap(async (req, res) => {
@@ -16,7 +16,7 @@ router.post('/register', wrap(async (req, res) => {
   if (!isEmail(email)) throw httpError(400, 'Enter a valid email address');
   if (password.length < 6) throw httpError(400, 'Password must be at least 6 characters');
   if (db.users.findOne((u) => u.email === email.toLowerCase())) throw httpError(409, 'An account with this email already exists');
-  const user = db.users.insert({
+  const user = await db.users.insert({
     name: name.trim(), email: email.toLowerCase(), role: 'student', active: true,
     passwordHash: bcrypt.hashSync(password, 10),
   });
@@ -29,7 +29,7 @@ router.post('/login', wrap(async (req, res) => {
   const user = db.users.findOne((u) => u.email === email.toLowerCase());
   if (!user || !bcrypt.compareSync(password, user.passwordHash)) throw httpError(401, 'Invalid email or password');
   if (user.active === false) throw httpError(403, 'This account has been deactivated. Contact an administrator.');
-  db.users.update(user.id, { lastLoginAt: new Date().toISOString() });
+  await db.users.update(user.id, { lastLoginAt: new Date().toISOString() });
   res.json(session(user));
 }));
 
@@ -52,7 +52,7 @@ router.post('/google', wrap(async (req, res) => {
   let user = db.users.findOne((u) => u.email === email);
 
   if (!user) {
-    user = db.users.insert({
+    user = await db.users.insert({
       name: payload.name || 'Google User', 
       email: email, 
       role: 'student', 
@@ -63,7 +63,7 @@ router.post('/google', wrap(async (req, res) => {
     throw httpError(403, 'This account has been deactivated. Contact an administrator.');
   }
 
-  db.users.update(user.id, { lastLoginAt: new Date().toISOString() });
+  await db.users.update(user.id, { lastLoginAt: new Date().toISOString() });
   res.json(session(user));
 }));
 
@@ -81,7 +81,8 @@ router.put('/me', authenticate, wrap(async (req, res) => {
     if (clash) throw httpError(409, 'That email is already in use');
     patch.email = email.toLowerCase();
   }
-  res.json({ user: publicUser(db.users.update(req.user.id, patch)) });
+  const updated = await db.users.update(req.user.id, patch);
+  res.json({ user: publicUser(updated) });
 }));
 
 router.post('/change-password', authenticate, wrap(async (req, res) => {
@@ -89,7 +90,7 @@ router.post('/change-password', authenticate, wrap(async (req, res) => {
   need(req.body, ['currentPassword', 'newPassword']);
   if (!bcrypt.compareSync(currentPassword, req.user.passwordHash)) throw httpError(400, 'Current password is incorrect');
   if (newPassword.length < 6) throw httpError(400, 'New password must be at least 6 characters');
-  db.users.update(req.user.id, { passwordHash: bcrypt.hashSync(newPassword, 10) });
+  await db.users.update(req.user.id, { passwordHash: bcrypt.hashSync(newPassword, 10) });
   res.json({ message: 'Password updated' });
 }));
 
@@ -117,7 +118,7 @@ router.post('/reset-password', wrap(async (req, res) => {
   if (newPassword.length < 6) throw httpError(400, 'Password must be at least 6 characters');
   const rec = db.resetTokens.findOne((t) => t.token === token && t.expiresAt > Date.now());
   if (!rec) throw httpError(400, 'This reset link is invalid or has expired');
-  db.users.update(rec.userId, { passwordHash: bcrypt.hashSync(newPassword, 10) });
+  await db.users.update(rec.userId, { passwordHash: bcrypt.hashSync(newPassword, 10) });
   db.resetTokens.remove(rec.id);
   res.json({ message: 'Password has been reset. You can now log in.' });
 }));
